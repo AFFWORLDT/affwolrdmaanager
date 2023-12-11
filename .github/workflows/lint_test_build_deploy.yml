@@ -1,0 +1,66 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Test and Push to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  List-Test:
+
+    runs-on: self-hosted
+
+    steps:
+
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      run: |
+        pytest
+    - name: Create env file
+      run: |
+        touch .env
+        echo MONGO_URI=${MONGO_URI} >> .env
+        echo DB_NAME=${DB_NAME} >> .env
+        echo API_KEY=${API_KEY} >> .env
+        echo SECRET_KEY=${SECRET_KEY} >> .env
+        echo ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES} >> .env
+        echo ALGORITHM=${ALGORITHM} >> .env
+        echo ADMIN_API_URL=${ADMIN_API_URL} >> .env
+        echo AWS_ACCESS_KEY=${AWS_ACCESS_KEY} >> .env
+        echo AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} >> .env
+        echo REDIS_URL=${REDIS_URL} >> .env
+        echo BASE_URL=${BASE_URL} >> .env
+        
+        cat .env
+      env: 
+        MONGO_URI: ${{ secrets.MONGO_URI }} 
+        DB_NAME: ${{ secrets.DB_NAME }} 
+        API_KEY: ${{ secrets.API_KEY }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+        ALGORITHM: ${{ secrets.ALGORITHM }}
+        ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        REDIS_URL: ${{ secrets.REDIS_URL }}
+        BASE_URL: ${{ secrets.BASE_URL }}
+    
+    - name: Reload API
+      run: pm2 restart API
