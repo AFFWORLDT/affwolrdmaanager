@@ -5,6 +5,11 @@ name: Test and Push to EC2
 
 on:
 
+
+
+
+
+
   push:
     branches: [ "main" ]
 
